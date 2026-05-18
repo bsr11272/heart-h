@@ -87,6 +87,5 @@ Apache 2.0. See [LICENSE](LICENSE).
 Lifted: ESPHome `ld2450` component (Till Fleisch), LiteRT-LM + Gemma 4 E2B,
 YamNet CPU TFLite from `tensorflow/examples`, pycoral + MoveNet + DeepLab,
 Mosquitto, KuzuDB, HiveMQ MQTT 3 client, GraphRAG consolidation pattern.
-Full credits in [`docs/submission/WRITEUP.md`](docs/submission/WRITEUP.md).
 
 Research prototype, not a medical device. Wellness framing only.
