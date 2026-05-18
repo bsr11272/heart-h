@@ -1,0 +1,117 @@
+# ESP32 + HLK-LD2450 24 GHz radar — BEDROOM node
+# Twin of esp32_ld2450_bathroom.yaml; only substitutions differ.
+# Project-plan-v7.2.md §4.2: also covers visitor detection (caregiver) when
+# pendant is on the nightstand and Margaret is sleeping.
+#
+# Compile + flash:
+#   .dep/bin/esphome run firmware/esp32_ld2450_bedroom.yaml
+
+substitutions:
+  node_name: ld2450-bedroom
+  room: bedroom
+  friendly: "Hearth LD2450 — Bedroom"
+
+esphome:
+  name: ${node_name}
+  friendly_name: "${friendly}"
+  comment: "Hearth bedroom multi-target radar; publishes to MQTT radar/${room}/*"
+  min_version: "2024.6.0"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+  ap:
+    ssid: "${node_name}-setup"
+    password: "hearthsetup"
+
+captive_portal:
+
+logger:
+  level: INFO
+
+mqtt:
+  broker: !secret mqtt_broker
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  client_id: ${node_name}
+  topic_prefix: radar/${room}
+  discovery: false
+  birth_message:
+    topic: radar/${room}/availability
+    payload: online
+  will_message:
+    topic: radar/${room}/availability
+    payload: offline
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+uart:
+  id: uart_ld2450
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 256000
+  parity: NONE
+  stop_bits: 1
+
+ld2450:
+  id: ld2450_radar
+  uart_id: uart_ld2450
+
+binary_sensor:
+  - platform: ld2450
+    ld2450_id: ld2450_radar
+    has_target:
+      name: "${room} presence"
+      id: bs_presence
+    has_moving_target:
+      name: "${room} moving"
+      id: bs_moving
+    has_still_target:
+      name: "${room} still"
+      id: bs_still
+
+sensor:
+  - platform: ld2450
+    ld2450_id: ld2450_radar
+    target_count:
+      name: "${room} target_count"
+      id: s_target_count
+    still_target_count:
+      name: "${room} still_count"
+      id: s_still_count
+    moving_target_count:
+      name: "${room} moving_count"
+      id: s_moving_count
+    # Per-target sensors with throttle to ~10 Hz (replaces removed component-level throttle).
+    target_1:
+      x:     { name: "${room} t1_x", id: s_t1_x, filters: [throttle: 100ms] }
+      y:     { name: "${room} t1_y", id: s_t1_y, filters: [throttle: 100ms] }
+      speed: { name: "${room} t1_v", id: s_t1_v, filters: [throttle: 100ms] }
+    target_2:
+      x:     { name: "${room} t2_x", id: s_t2_x, filters: [throttle: 100ms] }
+      y:     { name: "${room} t2_y", id: s_t2_y, filters: [throttle: 100ms] }
+      speed: { name: "${room} t2_v", id: s_t2_v, filters: [throttle: 100ms] }
+    target_3:
+      x:     { name: "${room} t3_x", id: s_t3_x, filters: [throttle: 100ms] }
+      y:     { name: "${room} t3_y", id: s_t3_y, filters: [throttle: 100ms] }
+      speed: { name: "${room} t3_v", id: s_t3_v, filters: [throttle: 100ms] }
+
+  - platform: wifi_signal
+    name: "${room} wifi_rssi"
+    update_interval: 60s
+
+  - platform: uptime
+    name: "${room} uptime"
+    update_interval: 60s

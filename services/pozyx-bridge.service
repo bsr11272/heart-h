@@ -1,0 +1,25 @@
+# systemd unit for the Mega <-> Pi pendant bridge.
+# Install: sudo cp services/pozyx-bridge.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now pozyx-bridge
+[Unit]
+Description=Hearth — Pozyx pendant Mega->MQTT+SQLite bridge
+After=network-online.target mosquitto.service
+Wants=network-online.target mosquitto.service
+
+[Service]
+Type=simple
+User=sai
+Group=dialout
+WorkingDirectory=/home/sai/gemmahome
+Environment=HEARTH_SERIAL=/dev/ttyACM0
+ExecStart=/home/sai/gemmahome/.dep/bin/python /home/sai/gemmahome/services/pozyx_bridge.py \
+          --db /home/sai/gemmahome/data/store.db \
+          --broker localhost \
+          --log-level INFO
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/sai/gemmahome/logs/pozyx-bridge.log
+StandardError=append:/home/sai/gemmahome/logs/pozyx-bridge.log
+
+[Install]
+WantedBy=multi-user.target

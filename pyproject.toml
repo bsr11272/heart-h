@@ -1,0 +1,68 @@
+[project]
+name = "hearth"
+version = "0.1.0"
+description = "Privacy-respecting AI companion for aging in place — Gemma 4 Good Hackathon submission"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [{ name = "Sai Revanth Reddy Bodha", email = "sairevanthreddybodha@gmail.com" }]
+keywords = ["gemma", "edge-ai", "ambient-sensing", "aging-in-place", "uwb", "kaggle-hackathon"]
+
+dependencies = [
+    # Sensor I/O
+    "pyserial>=3.5",            # USB-serial: Mega ↔ Pi
+    "paho-mqtt>=2.0",           # MQTT client for Mosquitto
+    "pypozyx>=1.2.6",           # Pozyx UWB + IMU + barometer + CIR (PR #14)
+
+    # Signal processing
+    "numpy>=1.26",
+    "scipy>=1.13",              # FFT, butter filter for BCG/SCG
+
+    # Storage
+    "lancedb>=0.10",            # vector store for keyframe embeddings (768-dim MRL)
+
+    # Cloud LLM + embedding
+    "google-genai>=0.3",        # Gemma 4 26B-A4B + Gemini Embedding 2 via Gemini API
+
+    # Embedded firmware tooling
+    "esphome>=2024.6",          # compiles + flashes ESP32 ld2450 nodes
+
+    # Voice (Pi 4B)
+    "piper-tts>=1.2",           # real-time TTS
+
+    # Scheduling
+    "apscheduler>=3.10",
+
+    # Env / config
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+jetson = [
+    # Pinned versions for JetPack 4.6.6 / CUDA 10.2 / Python 3.6 are installed
+    # directly on the Jetson, not via this pyproject. See firmware/jetson_camera_agent.py
+    # docstring for the JetPack-pinned install commands.
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+    "ipython>=8.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/bsr11272/hearth"
+Plan = "https://github.com/bsr11272/hearth/blob/main/project-plan-v7.2.md"
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]  # line length handled by formatter
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Block ROS-2 system plugin imports leaking from /opt/ros/* PYTHONPATH on dev box
+addopts = "-p no:launch_testing -p no:launch_pytest"

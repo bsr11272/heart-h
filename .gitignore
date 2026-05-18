@@ -1,0 +1,90 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.Python
+build/
+dist/
+
+# Virtual environments
+.dep/
+.dep-*/
+.venv/
+venv/
+env/
+
+# Secrets / env
+.env
+.env.local
+*.secrets
+firmware/secrets.yaml
+
+# Model weights (large binaries, not for git)
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.engine
+*.onnx
+*.tflite
+*.litertlm
+models/
+
+# Data / runtime artifacts
+*.db
+*.db-journal
+*.sqlite*
+data/
+keyframes/
+recordings/
+lance/
+*.kuzu
+
+# ESPHome / Arduino build
+firmware/.esphome/
+firmware/build/
+firmware/**/build/
+*.hex
+*.elf
+
+# Android
+hearth-android/.gradle/
+hearth-android/build/
+hearth-android/app/build/
+hearth-android/captures/
+hearth-android/.idea/
+hearth-android/local.properties
+hearth-android/**/*.iml
+hearth-android/.cxx/
+*.apk
+*.aab
+*.ap_
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.claude/
+
+# Logs
+*.log
+logs/
+
+# Coverage / test
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Local-only docs / demo material (kept on disk, not pushed)
+demo images/
+kaggle info images/
+archive_images/
+Screenshot*.png
+project-plan-v*.md
+docs/submission/

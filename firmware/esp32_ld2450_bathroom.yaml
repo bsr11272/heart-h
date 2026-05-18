@@ -1,0 +1,144 @@
+# ESP32 + HLK-LD2450 24 GHz radar — BATHROOM node
+# Project-plan-v7.2.md §4.2: multi-target X/Y + velocity, max 3 simultaneous targets.
+# Wiring: LD2450 5V/GND to ESP32 5V/GND; LD2450 TX -> ESP32 GPIO16 (RX2); LD2450 RX -> ESP32 GPIO17 (TX2).
+#
+# Compile + flash from this Linux box:
+#   .dep/bin/esphome run firmware/esp32_ld2450_bathroom.yaml
+#
+# Required: firmware/secrets.yaml (copy from secrets.yaml.example, fill in wifi + mqtt).
+
+substitutions:
+  node_name: ld2450-bathroom
+  room: bathroom
+  friendly: "Hearth LD2450 — Bathroom"
+
+esphome:
+  name: ${node_name}
+  friendly_name: "${friendly}"
+  comment: "Hearth bathroom multi-target radar; publishes to MQTT radar/${room}/*"
+  min_version: "2024.6.0"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# -----------------------------------------------------------------------------
+# Wifi + fallback AP for re-config when wifi is unreachable.
+# -----------------------------------------------------------------------------
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true
+  ap:
+    ssid: "${node_name}-setup"
+    password: "hearthsetup"
+
+captive_portal:
+
+# -----------------------------------------------------------------------------
+# Logging — INFO is plenty during bring-up; bump to DEBUG over OTA if needed.
+# -----------------------------------------------------------------------------
+logger:
+  level: INFO
+
+# -----------------------------------------------------------------------------
+# MQTT broker = Pi 4B (gemmahome.local). Topic prefix carves out the room.
+# Pi-side services/radar_bridge.py consumes radar/${room}/sensor/* and emits
+# the unified delta schema (project-plan §3.1) into SQLite.
+# -----------------------------------------------------------------------------
+mqtt:
+  broker: !secret mqtt_broker
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  client_id: ${node_name}
+  topic_prefix: radar/${room}
+  discovery: false
+  birth_message:
+    topic: radar/${room}/availability
+    payload: online
+  will_message:
+    topic: radar/${room}/availability
+    payload: offline
+
+# -----------------------------------------------------------------------------
+# ESPHome native API (for OTA + esphome dashboard). Encryption required by
+# modern ESPHome; key generated once and reused.
+# -----------------------------------------------------------------------------
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+# -----------------------------------------------------------------------------
+# UART -> LD2450
+# -----------------------------------------------------------------------------
+uart:
+  id: uart_ld2450
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 256000
+  parity: NONE
+  stop_bits: 1
+
+# -----------------------------------------------------------------------------
+# LD2450 component (ESPHome 2024.6+ official). Publishes target X/Y/velocity.
+# -----------------------------------------------------------------------------
+ld2450:
+  id: ld2450_radar
+  uart_id: uart_ld2450
+
+# -----------------------------------------------------------------------------
+# Sensors we actually consume on the Pi.
+# Each gets its own MQTT topic (radar/${room}/sensor/<sensor_id>/state).
+# We deliberately skip resolution/angle/distance — Pi computes from x/y.
+# -----------------------------------------------------------------------------
+binary_sensor:
+  - platform: ld2450
+    ld2450_id: ld2450_radar
+    has_target:
+      name: "${room} presence"
+      id: bs_presence
+    has_moving_target:
+      name: "${room} moving"
+      id: bs_moving
+    has_still_target:
+      name: "${room} still"
+      id: bs_still
+
+sensor:
+  - platform: ld2450
+    ld2450_id: ld2450_radar
+    target_count:
+      name: "${room} target_count"
+      id: s_target_count
+    still_target_count:
+      name: "${room} still_count"
+      id: s_still_count
+    moving_target_count:
+      name: "${room} moving_count"
+      id: s_moving_count
+    # Per-target sensors with throttle to ~10 Hz (replaces removed component-level throttle).
+    target_1:
+      x:     { name: "${room} t1_x", id: s_t1_x, filters: [throttle: 100ms] }
+      y:     { name: "${room} t1_y", id: s_t1_y, filters: [throttle: 100ms] }
+      speed: { name: "${room} t1_v", id: s_t1_v, filters: [throttle: 100ms] }
+    target_2:
+      x:     { name: "${room} t2_x", id: s_t2_x, filters: [throttle: 100ms] }
+      y:     { name: "${room} t2_y", id: s_t2_y, filters: [throttle: 100ms] }
+      speed: { name: "${room} t2_v", id: s_t2_v, filters: [throttle: 100ms] }
+    target_3:
+      x:     { name: "${room} t3_x", id: s_t3_x, filters: [throttle: 100ms] }
+      y:     { name: "${room} t3_y", id: s_t3_y, filters: [throttle: 100ms] }
+      speed: { name: "${room} t3_v", id: s_t3_v, filters: [throttle: 100ms] }
+
+  - platform: wifi_signal
+    name: "${room} wifi_rssi"
+    update_interval: 60s
+
+  - platform: uptime
+    name: "${room} uptime"
+    update_interval: 60s

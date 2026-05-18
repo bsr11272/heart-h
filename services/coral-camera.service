@@ -1,0 +1,27 @@
+# systemd unit for the Coral Edge TPU camera agent.
+# Install: sudo cp services/coral-camera.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now coral-camera
+[Unit]
+Description=Hearth — Coral Edge TPU camera agent (object detection + pose + fall)
+After=network-online.target mosquitto.service
+Wants=network-online.target mosquitto.service
+
+[Service]
+Type=simple
+User=mendel
+Group=video
+WorkingDirectory=/home/mendel/hearth
+ExecStart=/home/mendel/hearth/.dep/bin/python /home/mendel/hearth/services/coral_camera_agent.py \
+          --camera /dev/video1 \
+          --cam-name kitchen \
+          --broker localhost \
+          --keyframe-dir /home/mendel/hearth/keyframes \
+          --model-dir /home/mendel/hearth/models \
+          --log-level INFO
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/mendel/hearth/logs/coral-camera.log
+StandardError=append:/home/mendel/hearth/logs/coral-camera.log
+
+[Install]
+WantedBy=multi-user.target
